@@ -1,0 +1,48 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <random>
+
+std::mutex fork0;
+std::mutex fork1;
+
+void think(int id) {
+    std::cout << "Philosopher " << id << " is thinking.\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
+}
+
+void eat(int id) {
+    std::cout << "Philosopher " << id << " is eating.\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
+}
+
+void philosopher(int id) {
+    for (int i = 0; i < 5; ++i) { 
+        think(id);
+
+        if (id == 0) {
+            // Philosopher 0 picks up left (fork0) then right (fork1)
+            std::lock_guard<std::mutex> lock_left(fork0);
+            std::lock_guard<std::mutex> lock_right(fork1);
+            eat(id);
+        } else {
+            // Philosopher 1 picks up right (fork1) then left (fork0)
+            std::lock_guard<std::mutex> lock_right(fork1);
+            std::lock_guard<std::mutex> lock_left(fork0);
+            eat(id);
+        }
+    }
+}
+
+int main() {
+    srand(time(nullptr));
+
+    std::thread phil0(philosopher, 0);
+    std::thread phil1(philosopher, 1);
+
+    phil0.join();
+    phil1.join();
+
+    return 0;
+}
